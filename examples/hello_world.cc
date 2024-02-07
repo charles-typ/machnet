@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
       }
 
       std::string msg(buf.data(), ret);
-      //printf("Received message: %s, count = %zu\n", msg.c_str(), count++);
+      printf("Received message: %s, count = %zu\n", msg.c_str(), count++);
       ret = machnet_send(channel, flow, msg.data(), msg.size());
       if (ret == -1) printf("machnet_send() failed\n");
     }
