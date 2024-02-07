@@ -85,6 +85,7 @@ int main(int argc, char *argv[]) {
       printf("Received message: %s, count = %zu\n", msg.c_str(), count++);
       ret = machnet_send(channel, flow, msg.data(), msg.size());
       if (ret == -1) printf("machnet_send() failed\n");
+      printf("Sent message: %d\n", ret);
     }
   }
 
