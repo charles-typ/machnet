@@ -11,6 +11,8 @@
 #include <machnet.h>
 
 #include <array>
+#include <chrono>
+#include <iostream>
 
 DEFINE_string(local, "", "Local IP address");
 DEFINE_string(remote, "", "Remote IP address");
@@ -42,13 +44,21 @@ int main(int argc, char *argv[]) {
   if (FLAGS_remote != "") {
     printf("Sending message to %s:%d\n", FLAGS_remote.c_str(), kPort);
     MachnetFlow flow;
+    std::array<char, 1024> buf;
     std::string msg = "Hello World!";
     ret = machnet_connect(channel, FLAGS_local.c_str(), FLAGS_remote.c_str(),
                           kPort, &flow);
     assert_with_msg(ret == 0, "machnet_connect() failed");
 
-    const int ret = machnet_send(channel, flow, msg.data(), msg.size());
-    if (ret == -1) printf("machnet_send() failed\n");
+    for(int i = 0; i < 1000; i++) {
+      auto start = std::chrono::high_resolution_clock::now();
+      int ret = machnet_send(channel, flow, msg.data(), msg.size());
+      if (ret == -1) printf("machnet_send() failed\n");
+      ret = machnet_recv(channel, buf.data(), buf.size(), &flow);
+      auto end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
+      std::cout << "RTT: " << elapsed.count() << " seconds" << std::endl;
+    }
   } else {
     printf("Waiting for message from client\n");
     size_t count = 0;
@@ -56,7 +66,7 @@ int main(int argc, char *argv[]) {
     while (true) {
       std::array<char, 1024> buf;
       MachnetFlow flow;
-      const ssize_t ret = machnet_recv(channel, buf.data(), buf.size(), &flow);
+      ssize_t ret = machnet_recv(channel, buf.data(), buf.size(), &flow);
       assert_with_msg(ret >= 0, "machnet_recvmsg() failed");
       if (ret == 0) {
         usleep(10);
@@ -64,7 +74,8 @@ int main(int argc, char *argv[]) {
       }
 
       std::string msg(buf.data(), ret);
-      printf("Received message: %s, count = %zu\n", msg.c_str(), count++);
+      //printf("Received message: %s, count = %zu\n", msg.c_str(), count++);
+      ret = machnet_send(channel, flow, msg.data(), msg.size());
     }
   }
 
