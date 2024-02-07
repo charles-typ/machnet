@@ -50,14 +50,22 @@ int main(int argc, char *argv[]) {
                           kPort, &flow);
     assert_with_msg(ret == 0, "machnet_connect() failed");
 
-    for(int i = 0; i < 1000; i++) {
+    for(int i = 0; i < 100; i++) {
       auto start = std::chrono::high_resolution_clock::now();
       int ret = machnet_send(channel, flow, msg.data(), msg.size());
       if (ret == -1) printf("machnet_send() failed\n");
-      ret = machnet_recv(channel, buf.data(), buf.size(), &flow);
+      while (true) {
+        ret = machnet_recv(channel, buf.data(), buf.size(), &flow);
+        if (ret == 0) {
+          //usleep(10);
+          continue;
+        }
+      }
       auto end = std::chrono::high_resolution_clock::now();
-      std::chrono::duration<double> elapsed = end - start;
-      std::cout << "RTT: " << elapsed.count() << " seconds" << std::endl;
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+      std::cout << "Time taken by operation: "
+              << duration.count() / (double)1000 << " nanoseconds" << std::endl;
+
     }
   } else {
     printf("Waiting for message from client\n");
@@ -76,6 +84,7 @@ int main(int argc, char *argv[]) {
       std::string msg(buf.data(), ret);
       //printf("Received message: %s, count = %zu\n", msg.c_str(), count++);
       ret = machnet_send(channel, flow, msg.data(), msg.size());
+      if (ret == -1) printf("machnet_send() failed\n");
     }
   }
 
